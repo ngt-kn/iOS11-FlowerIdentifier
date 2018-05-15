@@ -11,19 +11,16 @@ import CoreML
 import Vision
 import Alamofire
 import SwiftyJSON
+import SDWebImage
 
 class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     
     let imagePicker = UIImagePickerController()
-    
-    @IBOutlet weak var descriptionLabel: UILabel!
     let wikipediaURL = "https://en.wikipedia.org/w/api.php"
     
-    
-    
-
-
+    @IBOutlet weak var descriptionLabel: UILabel!
     @IBOutlet weak var cameraImageView: UIImageView!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -36,7 +33,7 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     // imagePicker delegate method
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : Any]) {
         if let selectedImage = info[UIImagePickerControllerEditedImage] as? UIImage {
-            cameraImageView.image = selectedImage
+            //cameraImageView.image = selectedImage
             guard let ciimage = CIImage(image: selectedImage) else {
                 fatalError("Could not convert to CIImage")
             }
@@ -75,45 +72,41 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     }
     
     func wikipediaRequest(flowerName: String) {
- 
+        // JSON parameters
         let parameters : [String:String] = [
             "format" : "json",
             "action" : "query",
-            "prop" : "extracts",
+            "prop" : "extracts|pageimages",
             "exintro" : "",
             "explaintext" : "",
             "titles" : flowerName,
             "indexpageids" : "",
             "redirects" : "1",
+            "pithumbsize" : "500"
             ]
         
+        // http request using wikipedia api
         Alamofire.request(wikipediaURL, method: .get, parameters: parameters).responseJSON { (response) in
             if response.result.isSuccess {
-                print("Got the wikipedia")
-                print(response)
                 self.processResponse(response: JSON(response.result.value!))
             }
         }
     }
     
     func processResponse(response: JSON) {
-        
+        // Parse the JSON
         let pageID = response["query"]["pageids"][0].stringValue
         let description = response["query"]["pages"][pageID]["extract"].stringValue
+        let flowerImageURL = response["query"]["pages"][pageID]["thumbnail"]["source"].stringValue
         
+        // update view with image from wikipedia
+        cameraImageView.sd_setImage(with: URL(string: flowerImageURL))
+        //update description
         descriptionLabel.text = description
-        
-        
-        
-        
-        
     }
-    
-    
-    
+   
     // Present imagePicker when camera button pressed
     @IBAction func cameraButtonPressed(_ sender: UIBarButtonItem) {
         present(imagePicker, animated: true, completion: nil)
     }
 }
-
